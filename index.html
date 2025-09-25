@@ -1,92 +1,183 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>BMI Calculator</title>
-    <link rel="stylesheet" href="css/styles.css" />
-  </head>
-  <body>
-    <div class="topbar">
-      <h1>BMI Calculator</h1>
-      <div class="auth">
-        <span id="user-email"></span>
-        <button id="logout-btn" class="btn hidden">Logout</button>
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>BMI App (Supabase)</title>
+  <style>
+    body{font-family:Inter,system-ui,Arial;margin:0;padding:20px;background:#f5f7fb;color:#111}
+    .card{max-width:720px;margin:18px auto;padding:20px;background:#fff;border-radius:12px;box-shadow:0 6px 18px rgba(17,24,39,0.06)}
+    h1{margin:0 0 12px;font-size:22px}
+    input{padding:10px;border:1px solid #e3e8ef;border-radius:8px;width:100%;margin:6px 0}
+    button{padding:10px 14px;border-radius:8px;border:0;background:#2563eb;color:white;cursor:pointer}
+    .row{display:flex;gap:12px}
+    .row > *{flex:1}
+    ul{padding-left:18px}
+    .muted{color:#6b7280}
+  </style>
+</head>
+<body>
+  <div class="card" id="auth-card">
+    <h1>BMI App — Sign Up / Login</h1>
+    <div id="auth-forms">
+      <div style="margin-bottom:12px">
+        <strong>Sign up</strong><br/>
+        <input id="su-email" placeholder="Email" />
+        <input id="su-password" type="password" placeholder="Password" />
+        <button id="signup-btn">Create account</button>
+      </div>
+
+      <hr style="margin:12px 0"/>
+
+      <div>
+        <strong>Login</strong><br/>
+        <input id="li-email" placeholder="Email" />
+        <input id="li-password" type="password" placeholder="Password" />
+        <button id="login-btn">Login</button>
       </div>
     </div>
 
-    <div class="container">
-      <!-- Welcome screen -->
-      <div id="welcome" class="card center">
-        <h2>Welcome!</h2>
-        <p>Please sign up or log in to use the BMI Calculator.</p>
-        <div class="btn-group">
-          <button id="signup-btn" class="btn primary">Sign Up</button>
-          <button id="login-btn" class="btn secondary">Login</button>
-        </div>
-      </div>
+    <p class="muted" style="margin-top:12px">Tip: check email if your project requires confirmation.</p>
+  </div>
 
-      <!-- Calculator -->
-      <div id="calculator" class="card hidden">
-        <h2>Calculate Your BMI</h2>
-        <div class="form">
-          <div class="row">
-            <label for="age">Age:</label>
-            <input type="number" id="age" min="2" max="120" value="25" />
-          </div>
-
-          <div class="row">
-            <label for="gender">Gender:</label>
-            <select id="gender">
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-            </select>
-          </div>
-
-          <div class="row">
-            <label for="height">Height (cm):</label>
-            <input type="number" id="height" min="50" max="250" value="170" />
-          </div>
-
-          <div class="row">
-            <label for="weight">Weight (kg):</label>
-            <input type="number" id="weight" min="10" max="300" value="65" />
-          </div>
-
-          <button id="calc-btn" class="btn primary full">Compute BMI</button>
-        </div>
-
-        <div id="result" class="result">
-          <div id="bmi-value" class="bignum">—</div>
-          <div id="bmi-category" class="category">
-            Enter values to see result
-          </div>
-          <div id="healthy-range" class="note"></div>
-          <div id="age-note" class="note"></div>
-        </div>
-      </div>
-
-      <!-- About BMI -->
-      <div id="about" class="card">
-        <h3>About BMI</h3>
-        <p>
-          Body Mass Index (BMI) is a simple calculation using height and weight.
-          It helps estimate a healthy body weight based on your height.
-        </p>
-        <p class="small">
-          Categories:
-          <br /><strong>Underweight:</strong> BMI &lt; 18.5 <br /><strong
-            >Healthy:</strong
-          >
-          18.5 – 24.9 <br /><strong>Overweight:</strong> 25 – 29.9 <br /><strong
-            >Obesity:</strong
-          >
-          30+
-        </p>
+  <div class="card" id="app-card" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h1>Your BMI dashboard</h1>
+      <div>
+        <span id="user-email" class="muted"></span>
+        <button id="logout-btn" style="margin-left:12px;background:#ef4444">Logout</button>
       </div>
     </div>
 
-    <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
-    <script src="js/app.js"></script>
-  </body>
+    <div style="margin-top:12px">
+      <div class="row">
+        <input id="weight" placeholder="Weight (kg)"/>
+        <input id="height" placeholder="Height (cm)"/>
+      </div>
+      <div style="margin-top:8px">
+        <button id="calc-btn">Calculate & Save BMI</button>
+      </div>
+      <p id="bmi-result" class="muted"></p>
+    </div>
+
+    <hr style="margin:14px 0"/>
+
+    <h3>Your BMI history</h3>
+    <ul id="history"></ul>
+  </div>
+
+<script type="module">
+  
+  const SUPABASE_URL = 'https://zktogaryendkoxafpjjc.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprdG9nYXJ5ZW5ka294YWZwampjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3Nzc4MTEsImV4cCI6MjA3NDM1MzgxMX0.evWDTE2vsgvc7YCYyZq2jA3TD8FATNPtGjs8IrZProU';
+  // ===================================================================
+
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // UI elements
+  const authCard = document.getElementById('auth-card');
+  const appCard = document.getElementById('app-card');
+  const signupBtn = document.getElementById('signup-btn');
+  const loginBtn = document.getElementById('login-btn');
+  const logoutBtn = document.getElementById('logout-btn');
+  const calcBtn = document.getElementById('calc-btn');
+  const historyEl = document.getElementById('history');
+  const bmiResult = document.getElementById('bmi-result');
+  const userEmailEl = document.getElementById('user-email');
+
+  function showAuth(){ authCard.style.display = 'block'; appCard.style.display = 'none'; }
+  function showApp(){ authCard.style.display = 'none'; appCard.style.display = 'block'; }
+
+  // Signup
+  signupBtn.addEventListener('click', async () => {
+    const email = document.getElementById('su-email').value;
+    const password = document.getElementById('su-password').value;
+    if(!email || !password){ alert('enter email & password'); return; }
+
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if(error) return alert('Sign up error: ' + error.message);
+    alert('Account created. Check email if confirmation required.');
+  });
+
+  // Login
+  loginBtn.addEventListener('click', async () => {
+    const email = document.getElementById('li-email').value;
+    const password = document.getElementById('li-password').value;
+    if(!email || !password){ alert('enter email & password'); return; }
+
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if(error) return alert('Login error: ' + (error.message || JSON.stringify(error)));
+  });
+
+  // Logout
+  logoutBtn.addEventListener('click', async () => {
+    await supabase.auth.signOut();
+  });
+
+  // Calculate & Save BMI
+  calcBtn.addEventListener('click', async () => {
+    const w = parseFloat(document.getElementById('weight').value);
+    const h = parseFloat(document.getElementById('height').value);
+    if(!w || !h){ alert('Please enter both weight and height'); return; }
+    const h_m = h / 100;
+    const bmi = +(w / (h_m * h_m)).toFixed(1);
+    bmiResult.textContent = `Your BMI: ${bmi}`;
+
+    const { data: userData, error: userErr } = await supabase.auth.getUser();
+    if(userErr || !userData.user) { alert('User not found. Please login again.'); return; }
+    const user = userData.user;
+
+    const { data, error } = await supabase.from('bmi_records').insert([
+      { user_id: user.id, weight: w, height: h, bmi: bmi }
+    ]);
+    if(error) return alert('Save error: ' + error.message);
+    loadHistory();
+  });
+
+  // Load history
+  async function loadHistory(){
+    historyEl.innerHTML = '<li class="muted">Loading...</li>';
+    const { data, error } = await supabase.from('bmi_records')
+      .select('id, weight, height, bmi, created_at')
+      .order('created_at', { ascending: false });
+    if(error){ historyEl.innerHTML = '<li class="muted">Error loading history</li>'; console.error(error); return; }
+    if(!data || data.length === 0) { historyEl.innerHTML = '<li class="muted">No history yet</li>'; return; }
+
+    historyEl.innerHTML = '';
+    for(const r of data){
+      const li = document.createElement('li');
+      const d = new Date(r.created_at).toLocaleString();
+      li.textContent = `${d} — weight: ${r.weight} kg, height: ${r.height} cm → BMI: ${r.bmi}`;
+      historyEl.appendChild(li);
+    }
+  }
+
+  // Auth state & init
+  async function init(){
+    const sessResp = await supabase.auth.getSession();
+    const session = sessResp.data?.session;
+    if(session && session.user){
+      userEmailEl.textContent = session.user.email;
+      showApp();
+      loadHistory();
+    } else {
+      showAuth();
+    }
+
+    supabase.auth.onAuthStateChange((event, session) => {
+      if(event === 'SIGNED_IN' && session && session.user){
+        userEmailEl.textContent = session.user.email;
+        showApp();
+        loadHistory();
+      } else if(event === 'SIGNED_OUT'){
+        showAuth();
+      }
+    });
+  }
+
+  init();
+</script>
+</body>
 </html>
+
